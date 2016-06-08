@@ -27,3 +27,12 @@ main =
 
 -- main =
 --   renderList
+
+
+-- import Http
+-- import Json.Decode as Json exposing ((:=))
+--
+--
+-- feeds : Task Error (List String)
+-- feeds =
+--     get (Json.list Json.string) "https://www.reddit.com/r/all.json"
