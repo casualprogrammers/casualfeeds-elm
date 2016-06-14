@@ -1,11 +1,12 @@
 import Html exposing (..)
 import Html.App as Html
 import Http
-import Json.Decode as Json
+import Json.Decode exposing (..)
 import Task
 
 
 -- initialisation
+main: Program Never
 main =
   Html.program
     { init = init "Casual feed"
@@ -21,13 +22,13 @@ main =
 
 type alias Model =
   { title : String
-  , content : String
+  , feeds: List String
   }
 
 
 init : String -> (Model, Cmd Msg)
 init title =
-  ( Model title "Loading"
+  ( Model title ["Loading"]
   , getFeed "https://www.reddit.com/r/all.json"
   )
 
@@ -44,8 +45,8 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
-    FetchSucceed newUrl ->
-      (Model model.title newUrl, Cmd.none)
+    FetchSucceed  _ ->
+      (model, Cmd.none)
 
     FetchFail _ ->
       (model, Cmd.none)
@@ -53,14 +54,15 @@ update action model =
 
 
 -- VIEW
-
+listItem : String -> Html msg
+listItem txt = li [] [text txt]
 
 view : Model -> Html Msg
 view model =
   div []
     [ h2 [] [text model.title]
     , br [] []
-    , p [] [text model.content]
+    , p [] (List.map (listItem) model.feeds)
     ]
 
 
@@ -80,6 +82,9 @@ subscriptions model =
 getFeed : String -> Cmd Msg
 getFeed url = Task.perform FetchFail FetchSucceed (Http.get decodeResponse url)
 
-decodeResponse : Json.Decoder String
-decodeResponse =
-  Json.at ["data", "after"] Json.string
+fullNameDecoder : Decoder String
+fullNameDecoder =
+  object1 identity ("kind" := string)
+
+decodeResponse : Decoder String
+decodeResponse = at ["data", "children"] fullNameDecoder
