@@ -54,7 +54,7 @@ update msg model =
   case msg of
     MorePlease ->
       (model, getRandomGif model.topic)
-    
+
 
     FetchSucceed newUrl  ->
       (Model model.topic newUrl ["cane", "volante", "maggiore"], Cmd.none)
