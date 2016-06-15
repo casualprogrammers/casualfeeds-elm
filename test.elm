@@ -24,12 +24,13 @@ main =
 type alias Model =
   { topic : String
   , gifUrl : String
+  , feeds: List String
   }
 
 
 init : String -> (Model, Cmd Msg)
 init topic =
-  ( Model topic "waiting.gif"
+  ( Model topic "loading..." ["is1", "item2"]
   , getRandomGif topic
   )
 
@@ -37,6 +38,10 @@ init topic =
 
 -- UPDATE
 
+type alias Response = {
+  newUrl : String,
+  feeds: List String
+}
 
 type Msg
   = MorePlease
@@ -49,9 +54,10 @@ update msg model =
   case msg of
     MorePlease ->
       (model, getRandomGif model.topic)
+    
 
-    FetchSucceed newUrl ->
-      (Model model.topic newUrl, Cmd.none)
+    FetchSucceed newUrl  ->
+      (Model model.topic newUrl ["cane", "volante", "maggiore"], Cmd.none)
 
     FetchFail _ ->
       (model, Cmd.none)
@@ -67,9 +73,14 @@ view model =
     [ h2 [] [text model.topic]
     , button [ onClick MorePlease ] [ text "More Please!" ]
     , br [] []
-    , img [src model.gifUrl] []
+    , h3 [] [text model.gifUrl]
+    , ul
+      [class "grocery-list"]
+      (List.map (listItem) model.feeds  )
+
     ]
 
+listItem txt = li [] [text txt]
 
 
 -- SUBSCRIPTIONS
@@ -95,4 +106,4 @@ getRandomGif topic =
 
 decodeGifUrl : Json.Decoder String
 decodeGifUrl =
-  Json.at ["data", "image_url"] Json.string
+  Json.at ["data", "after"] Json.string
