@@ -1,7 +1,7 @@
 import Html exposing (..)
 import Html.App as Html
 import Http
-import Json.Decode exposing (..)
+import Json.Decode as Json exposing (..)
 import Task
 
 
@@ -9,7 +9,7 @@ import Task
 main: Program Never
 main =
   Html.program
-    { init = init "Casual feed"
+    { init = init "Casual feed" ["Loading"]
     , view = view
     , update = update
     , subscriptions = subscriptions
@@ -26,9 +26,9 @@ type alias Model =
   }
 
 
-init : String -> (Model, Cmd Msg)
-init title =
-  ( Model title ["Loading"]
+init : String -> List String-> (Model, Cmd Msg)
+init title feeds =
+  ( Model title feeds
   , getFeed "https://www.reddit.com/r/all.json"
   )
 
@@ -38,18 +38,18 @@ init title =
 
 
 type Msg
-  = FetchSucceed String
+  = FetchSucceed (List String)
   | FetchFail Http.Error
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update action model =
   case action of
-    FetchSucceed  _ ->
-      (model, Cmd.none)
+    FetchSucceed  feeds ->
+      (Model model.title feeds, Cmd.none)
 
     FetchFail _ ->
-      (model, Cmd.none)
+      (Model "fail" model.feeds, Cmd.none)
 
 
 
@@ -80,11 +80,18 @@ subscriptions model =
 
 
 getFeed : String -> Cmd Msg
-getFeed url = Task.perform FetchFail FetchSucceed (Http.get decodeResponse url)
+getFeed url = 
+  url
+  |> Http.get decodeResponse 
+  |> Task.perform FetchFail FetchSucceed 
 
-fullNameDecoder : Decoder String
-fullNameDecoder =
-  object1 identity ("kind" := string)
 
-decodeResponse : Decoder String
-decodeResponse = at ["data", "children"] fullNameDecoder
+-- decoders
+
+
+decodeResponse : Json.Decoder (List String)
+decodeResponse = Json.at ["data", "children"] (Json.list Json.string)
+   -- let 
+    --  feeds = Json.object1 (\kind -> kind) ("kind" := string)
+    --in
+     -- "children" := Json.at ["data", "children"] feeds
