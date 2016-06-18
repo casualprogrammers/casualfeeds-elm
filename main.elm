@@ -2,14 +2,14 @@ import Html exposing (..)
 import Html.App as Html
 import Http
 import Json.Decode as Json exposing (..)
-import Task
+import Task exposing (Task)
 
 
 -- initialisation
 main: Program Never
 main =
   Html.program
-    { init = init "Casual feed" ["Loading"]
+    { init = init "Casual feed" [RedditData "" "Loading"]
     , view = view
     , update = update
     , subscriptions = subscriptions
@@ -22,11 +22,20 @@ main =
 
 type alias Model =
   { title : String
-  , feeds: List String
+  , feeds: List RedditData
   }
 
+type alias RedditThing = 
+  { kind: String
+  , data: RedditData
+  }
 
-init : String -> List String-> (Model, Cmd Msg)
+type alias RedditData =
+  { thumbnail: String
+  , permalink: String
+  }
+
+init : String -> List RedditData-> (Model, Cmd Msg)
 init title feeds =
   ( Model title feeds
   , getFeed "https://www.reddit.com/r/all.json"
@@ -38,7 +47,7 @@ init title feeds =
 
 
 type Msg
-  = FetchSucceed (List String)
+  = FetchSucceed (List RedditData)
   | FetchFail Http.Error
 
 
@@ -54,8 +63,8 @@ update action model =
 
 
 -- VIEW
-listItem : String -> Html msg
-listItem txt = li [] [text txt]
+listItem : RedditData -> Html msg
+listItem data = li [] [text data.permalink]
 
 view : Model -> Html Msg
 view model =
@@ -81,17 +90,21 @@ subscriptions model =
 
 getFeed : String -> Cmd Msg
 getFeed url = 
-  url
-  |> Http.get decodeResponse 
+  Http.get decodeResponse url
   |> Task.perform FetchFail FetchSucceed 
 
 
 -- decoders
 
+decodeThing: Json.Decoder RedditData
+decodeThing = Json.at ["data"] (decodeData)
 
-decodeResponse : Json.Decoder (List String)
-decodeResponse = Json.at ["data", "children"] (Json.list Json.string)
-   -- let 
-    --  feeds = Json.object1 (\kind -> kind) ("kind" := string)
-    --in
-     -- "children" := Json.at ["data", "children"] feeds
+decodeData: Json.Decoder RedditData
+decodeData =   
+      Json.object2 RedditData
+    ("thumbnail" := Json.string) 
+    ("permalink" := Json.string)
+
+
+decodeResponse : Json.Decoder (List RedditData)
+decodeResponse =  Json.at ["data", "children"] (Json.list decodeThing)
